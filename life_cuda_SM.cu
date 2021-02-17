@@ -205,13 +205,13 @@ __global__ void playKernelSMDynamic(const cell_t *d_board, cell_t *d_newboard, i
 }
 
 /* print the life board */
-void print_flat(cell_t *board, int size) {
+void print_flat(cell_t *board, int inner_size, int outer_size) {
     int i, j;
     /* for each row */
-    for (j = 0; j < size; j++) {
+    for (j = 0; j < inner_size; j++) {
         /* print each column position... */
-        for (i = 0; i < size; i++)
-            printf("%c", board[j * size + i] ? 'x' : ' ');
+        for (i = 0; i < inner_size; i++)
+            printf("%c", board[board[(j + (KERNEL_SIZE / 2)) * outer_size + (i + (KERNEL_SIZE / 2))]] ? 'x' : ' ');
         /* followed by a carriage return */
         printf("\n");
     }
@@ -248,21 +248,10 @@ void write_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
     }
 }
 
-void usage() {
-    printf("Usage: ./life input_file [output_file]\n");
-    printf("input_file: path to the input file\n");
-    printf("output_file: path to the output file\n");
-}
-
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        usage();
-        return EXIT_FAILURE;
-    }
-
     // Host variables
     int size, flat_size, steps, i, grid_size, outer_grid_size;
-    FILE *f_in, *f_out = NULL;
+    FILE *f_in;
     cell_t *h_prev;
     bool_t writeOutput = 0, evenSteps;
     cudaEvent_t start, stop;
@@ -275,15 +264,7 @@ int main(int argc, char *argv[]) {
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
 
-    // Open files
-    printf("Provided input file: %s\n", argv[1]);
-    f_in = fopen(argv[1], "r");
-
-    if (argc >= 3) {
-        printf("Provided output file: %s\n", argv[2]);
-        f_out = fopen(argv[2], "w+");
-        writeOutput = 1;
-    }
+    f_in = stdin;
 
     // Read the input file and write its content in the host array
     fscanf(f_in, "%d %d", &size, &steps);
@@ -341,9 +322,7 @@ int main(int argc, char *argv[]) {
     cudaFree(d_prev);
 
     if (writeOutput) {
-        printf("Writing output file...\n");
-        write_file_flat(f_out, h_prev, size, outer_grid_size);
-        fclose(f_out);
+        print_flat(h_prev, size, outer_grid_size);
     }
 
     free(h_prev);
