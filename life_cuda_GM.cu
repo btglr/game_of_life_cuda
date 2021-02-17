@@ -40,7 +40,7 @@ cell_t *allocate_board_flat(int flat_size) {
     return board;
 }
 
-__device__ int adjacent_to(cell_t *d_board, int size, int i, int j) {
+__device__ __inline__ int adjacent_to(const cell_t *d_board, int size, int i, int j) {
     int k, l, count = 0;
 
     int sk = (i > 0) ? i - 1 : i;
