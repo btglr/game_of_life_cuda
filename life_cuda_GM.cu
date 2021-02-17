@@ -122,24 +122,12 @@ void write_file_flat(FILE *f, cell_t *board, int size) {
     }
 }
 
-
-void usage() {
-    printf("Usage: ./life input_file [output_file]\n");
-    printf("input_file: path to the input file\n");
-    printf("output_file: path to the output file\n");
-}
-
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        usage();
-        return EXIT_FAILURE;
-    }
-
     // Host variables
     int size, flat_size, steps, i, grid_size;
-    FILE *f_in, *f_out = NULL;
+    FILE *f_in;
     cell_t *h_prev;
-    bool_t writeOutput = 0, evenSteps;
+    bool_t writeOutput = 1, evenSteps;
     cudaEvent_t start, stop;
     float milliseconds = 0;
 
@@ -150,15 +138,7 @@ int main(int argc, char *argv[]) {
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
 
-    // Open files
-    printf("Provided input file: %s\n", argv[1]);
-    f_in = fopen(argv[1], "r");
-
-    if (argc >= 3) {
-        printf("Provided output file: %s\n", argv[2]);
-        f_out = fopen(argv[2], "w+");
-        writeOutput = 1;
-    }
+    f_in = stdin;
 
     // Read the input file and write its content in the host array
     fscanf(f_in, "%d %d", &size, &steps);
@@ -215,9 +195,7 @@ int main(int argc, char *argv[]) {
     cudaFree(d_prev);
 
     if (writeOutput) {
-        printf("Writing output file...\n");
-        write_file_flat(f_out, h_prev, size);
-        fclose(f_out);
+        print_flat(h_prev, size);
     }
 
     free(h_prev);
