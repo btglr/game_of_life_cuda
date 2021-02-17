@@ -19,7 +19,7 @@
 typedef unsigned char bool_t;
 typedef unsigned char cell_t;
 
-#define TILE_SIZE 32
+#define TILE_SIZE 8
 #define KERNEL_SIZE 3
 #define SHARED_MEMORY_SIZE (TILE_SIZE + KERNEL_SIZE - 1)
 
