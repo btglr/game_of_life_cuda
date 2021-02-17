@@ -109,19 +109,6 @@ void read_file_flat(FILE *f, cell_t *board, int size) {
     }
 }
 
-void write_file_flat(FILE *f, cell_t *board, int size) {
-    int i, j;
-    char *s = (char *) malloc(size + 10);
-
-    for (j = 0; j < size; j++) {
-        /* print each column position... */
-        for (i = 0; i < size; i++)
-            fprintf(f, "%c", board[j * size + i] ? 'x' : ' ');
-        /* followed by a carriage return */
-        fprintf(f, "\n");
-    }
-}
-
 int main(int argc, char *argv[]) {
     // Host variables
     int size, flat_size, steps, i, grid_size;
