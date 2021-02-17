@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 
 typedef unsigned char bool_t;
 typedef unsigned char cell_t;
@@ -39,6 +40,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 cell_t *allocate_board_flat(int flat_size, int outer_grid_size) {
     cell_t *board = (cell_t *) malloc(sizeof(cell_t) * flat_size);
 
+#pragma omp parallel for collapse(2)
     for (int i = 0; i < outer_grid_size; ++i) {
         for (int k = 0; k < KERNEL_SIZE / 2; ++k) {
             // Fill first rows

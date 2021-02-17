@@ -4,6 +4,7 @@ NVCC=nvcc
 FLAGS=-O3
 FLAGS_CUDA=-O3 -arch=sm_60 \
                -gencode=arch=compute_60,code=sm_60 \
+               -Xcompiler -fopenmp \
 
 all: life life_cuda_SM life_cuda_GM life_cuda_pitch life_serial
 
