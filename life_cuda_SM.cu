@@ -256,7 +256,7 @@ int main() {
     cell_t *h_prev;
     bool_t writeOutput = 1, evenSteps;
 //    cudaEvent_t start, stop;
-    float milliseconds = 0;
+//    float milliseconds = 0;
 
     // Device variables
     cell_t *d_prev, *d_next;
