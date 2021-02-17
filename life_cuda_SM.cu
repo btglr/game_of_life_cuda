@@ -211,7 +211,7 @@ void print_flat(cell_t *board, int inner_size, int outer_size) {
     for (j = 0; j < inner_size; j++) {
         /* print each column position... */
         for (i = 0; i < inner_size; i++)
-            printf("%c", board[board[(j + (KERNEL_SIZE / 2)) * outer_size + (i + (KERNEL_SIZE / 2))]] ? 'x' : ' ');
+            printf("%c", board[(j + (KERNEL_SIZE / 2)) * outer_size + (i + (KERNEL_SIZE / 2))] ? 'x' : ' ');
         /* followed by a carriage return */
         printf("\n");
     }
