@@ -255,15 +255,15 @@ int main() {
     FILE *f_in;
     cell_t *h_prev;
     bool_t writeOutput = 1, evenSteps;
-    cudaEvent_t start, stop;
+//    cudaEvent_t start, stop;
     float milliseconds = 0;
 
     // Device variables
     cell_t *d_prev, *d_next;
 
     // Prepare the timer
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
+//    cudaEventCreate(&start);
+//    cudaEventCreate(&stop);
 
     f_in = stdin;
 
@@ -290,7 +290,7 @@ int main() {
     // Copy the data from the host array to the device array
     cudaMemcpy(d_prev, h_prev, flat_size * sizeof(cell_t), cudaMemcpyHostToDevice);
 
-    cudaEventRecord(start);
+//    cudaEventRecord(start);
 
     for (i = 0; i < int(ceil((float) steps / 2)); i++) {
 //        printf("Step: %d\n", 2 * i);
@@ -305,11 +305,11 @@ int main() {
         }
     }
 
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
+//    cudaEventRecord(stop);
+//    cudaEventSynchronize(stop);
+//    cudaEventElapsedTime(&milliseconds, start, stop);
 
-    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
+//    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
 
     // Copy data back from the device array to the host array
     if (!evenSteps) {
