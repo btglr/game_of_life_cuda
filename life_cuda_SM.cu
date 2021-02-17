@@ -251,7 +251,8 @@ void write_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
 
 int main() {
     // Host variables
-    int size, flat_size, steps, i, grid_size, outer_grid_size;
+    unsigned short size, steps, i, grid_size, outer_grid_size;
+    unsigned int flat_size;
     FILE *f_in;
     cell_t *h_prev;
     bool_t writeOutput = 1, evenSteps;
