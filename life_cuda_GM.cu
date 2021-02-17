@@ -57,27 +57,25 @@ __device__ int adjacent_to(cell_t *d_board, int size, int i, int j) {
 }
 
 __global__ void playKernel(cell_t *d_board, cell_t *d_newboard, int size) {
-    int a;
-
     int bx = blockIdx.x;
     int by = blockIdx.y;
     int tx = threadIdx.x;
     int ty = threadIdx.y;
 
-    int d_j = by * blockDim.y + ty;
-    int d_i = bx * blockDim.x + tx;
+    int row = by * blockDim.y + ty;
+    int col = bx * blockDim.x + tx;
 
-    if (d_j < size && d_i < size) {
-        a = adjacent_to(d_board, size, d_i, d_j);
+    if (row < size && col < size) {
+        int a = adjacent_to(d_board, size, col, row);
 
         if (a == 2)
-            d_newboard[d_j * size + d_i] = d_board[d_j * size + d_i];
+            d_newboard[row * size + col] = d_board[row * size + col];
         if (a == 3)
-            d_newboard[d_j * size + d_i] = 1;
+            d_newboard[row * size + col] = 1;
         if (a < 2)
-            d_newboard[d_j * size + d_i] = 0;
+            d_newboard[row * size + col] = 0;
         if (a > 3)
-            d_newboard[d_j * size + d_i] = 0;
+            d_newboard[row * size + col] = 0;
     }
 }
 
