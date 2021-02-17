@@ -19,7 +19,7 @@
 typedef unsigned char bool_t;
 typedef unsigned char cell_t;
 
-#define TILE_SIZE 32
+#define TILE_SIZE 16
 
 #define gpuErrchk(ans)                        \
     {                                         \
