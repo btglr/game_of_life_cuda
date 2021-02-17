@@ -187,8 +187,8 @@ __global__ void playKernelSMDynamic(const cell_t *d_board, cell_t *d_newboard, i
     __syncthreads();
 
     unsigned int a = 0;
-    for (int j = 0; j < KERNEL_SIZE; ++j) {
-        for (int i = 0; i < KERNEL_SIZE; ++i) {
+    for (unsigned int j = 0; j < KERNEL_SIZE; ++j) {
+        for (unsigned int i = 0; i < KERNEL_SIZE; ++i) {
             a += neighbors_ds[j + idx_inner_y - (KERNEL_SIZE / 2)][i + idx_inner_x - (KERNEL_SIZE / 2)];
         }
     }
