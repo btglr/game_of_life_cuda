@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
     int size, flat_size, steps, i, grid_size, outer_grid_size;
     FILE *f_in;
     cell_t *h_prev;
-    bool_t writeOutput = 0, evenSteps;
+    bool_t writeOutput = 1, evenSteps;
     cudaEvent_t start, stop;
     float milliseconds = 0;
 
