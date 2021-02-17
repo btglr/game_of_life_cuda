@@ -8,8 +8,24 @@
 
 #SBATCH --time=00:10:00
 
-cd ~/CHPS0911/Projet\ -\ Marathon2016/2016/life
+export OMP_NUM_THREADS=14
+
+cd ~/CHPS0911/Projet\ -\ Marathon2016/2016/life || exit
+
+printf "=== COMPILATION ===\n"
+
 make
 
-echo '== Shared Memory Kernel =='
-time ./life_cuda_SM.bin < judge.in
+printf "\n=== Shared Memory Kernel ===\n"
+
+(time ./life_cuda_SM.bin < judge.in > judge_cuda.out) 2>&1
+
+RESULT=$(diff judge_cuda.out judge_serial.out)
+
+if [ "$RESULT" == '' ]
+  then
+    printf "\nFILES ARE EQUAL"
+  else
+    printf "\nFILES ARE NOT EQUAL"
+    echo "$RESULT"
+fi
