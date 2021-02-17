@@ -7,7 +7,6 @@
 #SBATCH --time=00:10:00
 
 cd ~/CHPS0911/Projet\ -\ Marathon2016/2016/life
-make clean
 make
 
 echo '== Global Memory Kernel =='
