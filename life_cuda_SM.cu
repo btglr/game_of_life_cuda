@@ -249,7 +249,7 @@ void write_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main() {
     // Host variables
     int size, flat_size, steps, i, grid_size, outer_grid_size;
     FILE *f_in;
