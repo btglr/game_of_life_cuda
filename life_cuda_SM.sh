@@ -26,6 +26,6 @@ if [ "$RESULT" == '' ]
   then
     printf "\nFILES ARE EQUAL"
   else
-    printf "\nFILES ARE NOT EQUAL"
+    printf "\nFILES ARE NOT EQUAL\n\n"
     echo "$RESULT"
 fi
