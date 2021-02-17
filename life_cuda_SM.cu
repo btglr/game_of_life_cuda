@@ -149,28 +149,29 @@ __global__ void playKernelSM(const cell_t *d_board, cell_t *d_newboard, int inne
 }
 
 __global__ void playKernelSMDynamic(const cell_t *d_board, cell_t *d_newboard, int inner_size, int outer_size) {
-    unsigned int bx = blockIdx.x;
-    unsigned int by = blockIdx.y;
-    unsigned int tx = threadIdx.x;
-    unsigned int ty = threadIdx.y;
+    unsigned short bx = blockIdx.x;
+    unsigned short by = blockIdx.y;
+    unsigned short tx = threadIdx.x;
+    unsigned short ty = threadIdx.y;
 
     // Calculate the row and col for the output array
-    unsigned int row_g = by * TILE_SIZE + ty + (KERNEL_SIZE / 2);
-    unsigned int col_g = bx * TILE_SIZE + tx + (KERNEL_SIZE / 2);
+    unsigned short row_g = by * TILE_SIZE + ty + (KERNEL_SIZE / 2);
+    unsigned short col_g = bx * TILE_SIZE + tx + (KERNEL_SIZE / 2);
 
     __shared__ cell_t neighbors_ds[SHARED_MEMORY_SIZE][SHARED_MEMORY_SIZE];
 
-    unsigned int idx_inner_x = tx + (KERNEL_SIZE / 2);
-    unsigned int idx_inner_y = ty + (KERNEL_SIZE / 2);
+    unsigned short idx_inner_x = tx + (KERNEL_SIZE / 2);
+    unsigned short idx_inner_y = ty + (KERNEL_SIZE / 2);
 
-    unsigned int blockIndex = ty + tx * TILE_SIZE;
+    unsigned short blockIndex = ty + tx * TILE_SIZE;
 
-    for (unsigned int incr = blockIndex; incr < SHARED_MEMORY_SIZE * SHARED_MEMORY_SIZE; incr += TILE_SIZE * TILE_SIZE) {
-        unsigned int ry = incr % SHARED_MEMORY_SIZE;
-        unsigned int rx = incr / SHARED_MEMORY_SIZE;
+    // Using unsigned short reduces the duration of each kernel by ~100 us (~930 us to ~830 us)
+    for (unsigned short incr = blockIndex; incr < SHARED_MEMORY_SIZE * SHARED_MEMORY_SIZE; incr += TILE_SIZE * TILE_SIZE) {
+        unsigned short ry = incr % SHARED_MEMORY_SIZE;
+        unsigned short rx = incr / SHARED_MEMORY_SIZE;
 
-        unsigned int gy = ry + by * TILE_SIZE;
-        unsigned int gx = rx + bx * TILE_SIZE;
+        unsigned short gy = ry + by * TILE_SIZE;
+        unsigned short gx = rx + bx * TILE_SIZE;
 
         // Required to avoid accessing out of bounds
         if (gy < outer_size && gx < outer_size) {
@@ -186,9 +187,9 @@ __global__ void playKernelSMDynamic(const cell_t *d_board, cell_t *d_newboard, i
     // Sync threads now, no need to wait for the threads that exit
     __syncthreads();
 
-    unsigned int a = 0;
-    for (unsigned int j = 0; j < KERNEL_SIZE; ++j) {
-        for (unsigned int i = 0; i < KERNEL_SIZE; ++i) {
+    unsigned short a = 0;
+    for (unsigned short j = 0; j < KERNEL_SIZE; ++j) {
+        for (unsigned short i = 0; i < KERNEL_SIZE; ++i) {
             a += neighbors_ds[j + idx_inner_y - (KERNEL_SIZE / 2)][i + idx_inner_x - (KERNEL_SIZE / 2)];
         }
     }
