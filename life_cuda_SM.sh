@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --error=jobs/life_cuda.%J.err
-#SBATCH --output=jobs/life_cuda.%J.out
+#SBATCH --error=jobs/life_cuda_SM.%J.err
+#SBATCH --output=jobs/life_cuda_SM.%J.out
 #SBATCH -N 1
 #SBATCH -c 28
 #SBATCH --gres=gpu:4
@@ -11,11 +11,5 @@
 cd ~/CHPS0911/Projet\ -\ Marathon2016/2016/life
 make
 
-echo '== Global Memory Kernel =='
-./life_cuda_GM judge.in judge_cuda_GM.txt
-
 echo '== Shared Memory Kernel =='
-./life_cuda_SM judge.in judge_cuda_SM.txt
-
-echo '== Shared Memory Kernel + Pitch =='
-./life_cuda_pitch judge.in judge_cuda_pitch.txt
+time ./life_cuda_SM.bin < judge.in
