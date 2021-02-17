@@ -1,4 +1,6 @@
 #!/bin/bash
+#SBATCH --error=jobs/life_cuda.%J.err
+#SBATCH --output=jobs/life_cuda.%J.out
 #SBATCH -N 1
 #SBATCH -c 28
 #SBATCH --gres=gpu:4
