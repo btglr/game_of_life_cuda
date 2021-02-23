@@ -196,17 +196,17 @@ int main(int argc, char *argv[]) {
     dim3 dimBlock(TILE_SIZE, TILE_SIZE, 1);
 
     // Allocate device arrays
-    cudaMallocPitch((void **) &d_prev, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size);
-    cudaMallocPitch((void **) &d_next, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size);
+    gpuErrchk(cudaMallocPitch((void **) &d_prev, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size));
+    gpuErrchk(cudaMallocPitch((void **) &d_next, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size));
 
 //    printf("Pitch: %lu\n", pitch);
 
     // Copy the data from the host array to the device array
 
-    cudaMemcpy2D(d_prev, pitch,
+    gpuErrchk(cudaMemcpy2D(d_prev, pitch,
                  h_prev, outer_grid_size * sizeof(cell_t),
                  outer_grid_size * sizeof(cell_t), outer_grid_size,
-                 cudaMemcpyHostToDevice);
+                 cudaMemcpyHostToDevice));
 
 //    cudaEventRecord(start);
 
@@ -230,14 +230,14 @@ int main(int argc, char *argv[]) {
 //    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
 
     // Copy data back from the device array to the host array
-    cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
+    gpuErrchk(cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
                  evenSteps ? d_prev : d_next, pitch,
                  outer_grid_size * sizeof(cell_t), outer_grid_size,
-                 cudaMemcpyDeviceToHost);
+                 cudaMemcpyDeviceToHost));
 
     // Deallocate device arrays
-    cudaFree(d_next);
-    cudaFree(d_prev);
+    gpuErrchk(cudaFree(d_next));
+    gpuErrchk(cudaFree(d_prev));
 
     if (writeOutput) {
         print_flat(h_prev, size, outer_grid_size);
