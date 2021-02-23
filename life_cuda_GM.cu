@@ -95,14 +95,17 @@ void print_flat(cell_t *board, int size) {
 /* read a file into the life board */
 void read_file_flat(FILE *f, cell_t *board, int size) {
     int i, j;
+    size_t len;
     char *s = (char *) malloc(size + 10);
 
     for (j = 0; j < size; j++) {
         /* get a string */
         fgets(s, size + 10, f);
+        len = strlen(s) - 1;
+
         /* copy the string to the life board */
         for (i = 0; i < size; i++) {
-            board[j * size + i] = s[i] == 'x';
+            board[j * size + i] = i < len ? s[i] == 'x' : 0;
         }
     }
 }
