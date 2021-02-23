@@ -178,7 +178,7 @@ void read_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
         /* copy the string to the life board */
         for (i = 0; i < inner_size; i++) {
             // If i is less than the line's length, read the value at that index, otherwise fill with a blank (0)
-            // The serial version was accessing lines out of bounds due to the first line of judge.in not being
+            // The serial version was accessing uninitialized memory due to the first line of judge.in not being
             // as long as the grid size expects it to be
             // Those accesses sometimes added 'x's where they shouldn't have been if the accessed memory wasn't empty,
             // causing the result to be wrong with a small number of steps
