@@ -11,7 +11,7 @@
 printf "=== COMPILATION ===\n"
 
 module load cuda/11.0
-make
+make life_cuda_SM
 
 printf "\n=== Shared Memory Kernel ===\n"
 
