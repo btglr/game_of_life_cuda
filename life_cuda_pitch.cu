@@ -144,35 +144,16 @@ void read_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
     }
 }
 
-void write_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
-    int i, j;
-    char *s = (char *) malloc(inner_size + 10);
-
-    for (j = 0; j < inner_size; j++) {
-        /* print each column position... */
-        for (i = 0; i < inner_size; i++)
-            fprintf(f, "%c", board[(j + 1) * outer_size + (i + 1)] ? 'x' : ' ');
-        /* followed by a carriage return */
-        fprintf(f, "\n");
-    }
-}
-
 int main(int argc, char *argv[]) {
     // Host variables
     int size, flat_size, steps, i, grid_size, outer_grid_size;
     FILE *f_in;
     cell_t *h_prev;
     bool_t writeOutput = 1, evenSteps;
-//    cudaEvent_t start, stop;
-//    float milliseconds = 0;
     size_t pitch;
 
     // Device variables
     cell_t *d_prev, *d_next;
-
-    // Prepare the timer
-//    cudaEventCreate(&start);
-//    cudaEventCreate(&stop);
 
     f_in = stdin;
 
@@ -199,16 +180,11 @@ int main(int argc, char *argv[]) {
     gpuErrchk(cudaMallocPitch((void **) &d_prev, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size));
     gpuErrchk(cudaMallocPitch((void **) &d_next, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size));
 
-//    printf("Pitch: %lu\n", pitch);
-
     // Copy the data from the host array to the device array
-
     gpuErrchk(cudaMemcpy2D(d_prev, pitch,
                  h_prev, outer_grid_size * sizeof(cell_t),
                  outer_grid_size * sizeof(cell_t), outer_grid_size,
                  cudaMemcpyHostToDevice));
-
-//    cudaEventRecord(start);
 
     for (i = 0; i < int(ceil((float) steps / 2)); i++) {
         //  printf("Step: %d\n", 2 * i);
@@ -222,12 +198,6 @@ int main(int argc, char *argv[]) {
             playKernelSMPitched<<<dimGrid, dimBlock>>>(d_next, d_prev, pitch, size, outer_grid_size);
         }
     }
-
-//    cudaEventRecord(stop);
-//    cudaEventSynchronize(stop);
-//    cudaEventElapsedTime(&milliseconds, start, stop);
-
-//    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
 
     // Copy data back from the device array to the host array
     gpuErrchk(cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
