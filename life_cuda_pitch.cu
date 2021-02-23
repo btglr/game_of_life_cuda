@@ -230,17 +230,10 @@ int main(int argc, char *argv[]) {
 //    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
 
     // Copy data back from the device array to the host array
-    if (!evenSteps) {
-        cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
-                     d_next, pitch,
-                     outer_grid_size * sizeof(cell_t), outer_grid_size,
-                     cudaMemcpyDeviceToHost);
-    } else {
-        cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
-                     d_prev, pitch,
-                     outer_grid_size * sizeof(cell_t), outer_grid_size,
-                     cudaMemcpyDeviceToHost);
-    }
+    cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
+                 evenSteps ? d_prev : d_next, pitch,
+                 outer_grid_size * sizeof(cell_t), outer_grid_size,
+                 cudaMemcpyDeviceToHost);
 
     // Deallocate device arrays
     cudaFree(d_next);

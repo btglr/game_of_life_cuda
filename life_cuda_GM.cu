@@ -155,11 +155,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Copy data back from the device array to the host array
-    if (!evenSteps) {
-        gpuErrchk(cudaMemcpy(h_prev, d_next, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost));
-    } else {
-        gpuErrchk(cudaMemcpy(h_prev, d_prev, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost));
-    }
+    gpuErrchk(cudaMemcpy(h_prev, evenSteps ? d_prev : d_next, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost))
 
     // Deallocate device arrays
     gpuErrchk(cudaFree(d_next));
