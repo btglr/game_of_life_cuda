@@ -6,13 +6,10 @@ FLAGS_CUDA=-O3 -arch=sm_60 \
                -gencode=arch=compute_60,code=sm_60 \
                -Xcompiler -fopenmp \
 
-all: life life_cuda_SM life_cuda_GM life_cuda_pitch life_serial
+all: life life_cuda_SM life_cuda_GM life_cuda_pitch
 
 life: life.c
 	$(CC) $(FLAGS) life.c -o life.bin
-
-life_serial: life_serial.c
-	$(CC) $(FLAGS) life_serial.c -o life_serial.bin
 
 life_cuda_GM: life_cuda_GM.cu
 	$(NVCC) $(FLAGS_CUDA) life_cuda_GM.cu -o life_cuda_GM.bin
