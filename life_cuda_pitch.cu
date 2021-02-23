@@ -19,7 +19,9 @@
 typedef unsigned char bool_t;
 typedef unsigned char cell_t;
 
-#define TILE_SIZE 32
+#define TILE_SIZE 8
+#define KERNEL_SIZE 3
+#define SHARED_MEMORY_SIZE (TILE_SIZE + KERNEL_SIZE - 1)
 
 #define gpuErrchk(ans)                        \
     {                                         \
@@ -55,96 +57,70 @@ cell_t *allocate_board_flat(int flat_size, int outer_grid_size) {
 }
 
 __global__ void playKernelSMPitched(const cell_t *d_board, cell_t *d_newboard, size_t pitch, int inner_size, int outer_size) {
-    int a = 0;
-
-    int bx = blockIdx.x;
-    int by = blockIdx.y;
-    int tx = threadIdx.x;
-    int ty = threadIdx.y;
+    unsigned short bx = blockIdx.x;
+    unsigned short by = blockIdx.y;
+    unsigned short tx = threadIdx.x;
+    unsigned short ty = threadIdx.y;
 
     // Calculate the row and col for the output array
-    int row_g = by * TILE_SIZE + ty + 1;
-    int col_g = bx * TILE_SIZE + tx + 1;
+    unsigned short row_g = by * TILE_SIZE + ty + (KERNEL_SIZE / 2);
+    unsigned short col_g = bx * TILE_SIZE + tx + (KERNEL_SIZE / 2);
 
-    int previous_row_g = row_g - 1;
-    int previous_col_g = col_g - 1;
-    int next_row_g = row_g + 1;
-    int next_col_g = col_g + 1;
+    __shared__ cell_t neighbors_ds[SHARED_MEMORY_SIZE][SHARED_MEMORY_SIZE];
 
-    // Add 1 on each side for the edges
-    __shared__ cell_t ds[TILE_SIZE + 2][TILE_SIZE + 2];
+    unsigned short idx_inner_x = tx + (KERNEL_SIZE / 2);
+    unsigned short idx_inner_y = ty + (KERNEL_SIZE / 2);
 
-    int idx_inner_x = tx + 1;
-    int idx_inner_y = ty + 1;
+    unsigned short blockIndex = ty + tx * TILE_SIZE;
 
-    if (row_g <= inner_size && col_g <= inner_size) {
-        // If ty is 0 (top edge), load an extra value from the row above
-        // If ty is 31 (bottom edge), load an extra value from the row below
-        if (ty == 0) {
-            // Previous row, same column
-            ds[idx_inner_y - 1][idx_inner_x] = d_board[previous_row_g * pitch + col_g];
+    // Using unsigned short reduces the duration of each kernel by ~100 us (~930 us to ~830 us)
+    for (unsigned short incr = blockIndex; incr < SHARED_MEMORY_SIZE * SHARED_MEMORY_SIZE; incr += TILE_SIZE * TILE_SIZE) {
+        unsigned short ry = incr % SHARED_MEMORY_SIZE;
+        unsigned short rx = incr / SHARED_MEMORY_SIZE;
 
-            // Load top left/right corner
-            if (tx == 0) ds[idx_inner_y - 1][idx_inner_x - 1] = d_board[previous_row_g * pitch + previous_col_g];
-            else if (tx == (TILE_SIZE - 1))
-                ds[idx_inner_y - 1][idx_inner_x + 1] = d_board[previous_row_g * pitch + next_col_g];
-        } else if (ty == (TILE_SIZE - 1)) {
-            // Next row, same column
-            ds[idx_inner_y + 1][idx_inner_x] = d_board[next_row_g * pitch + col_g];
+        unsigned short gy = ry + by * TILE_SIZE;
+        unsigned short gx = rx + bx * TILE_SIZE;
 
-            // Load bottom left/right corner
-            if (tx == 0) ds[idx_inner_y + 1][idx_inner_x - 1] = d_board[next_row_g * pitch + previous_col_g];
-            else if (tx == (TILE_SIZE - 1))
-                ds[idx_inner_y + 1][idx_inner_x + 1] = d_board[next_row_g * pitch + next_col_g];
+        // Required to avoid accessing out of bounds
+        if (gy < outer_size && gx < outer_size) {
+            neighbors_ds[ry][rx] = d_board[gy * pitch + gx];
         }
+    }
 
-        // If tx is 0 (left edge), load an extra value from the column to the left
-        // If tx is 31 (right edge), load an extra value from the column to the right
-        if (tx == 0) {
-            // Same row, previous column
-            ds[idx_inner_y][idx_inner_x - 1] = d_board[row_g * pitch + previous_col_g];
-        } else if (tx == (TILE_SIZE - 1)) {
-            // Same row, next column
-            ds[idx_inner_y][idx_inner_x + 1] = d_board[row_g * pitch + next_col_g];
-        }
-
-        // Each thread that's not directly on the edges loads its own value
-        if (idx_inner_x >= 1 && idx_inner_y >= 1 && idx_inner_x <= TILE_SIZE && idx_inner_y <= TILE_SIZE) {
-            ds[idx_inner_y][idx_inner_x] = d_board[row_g * pitch + col_g];
-        }
-    } else {
+    // Required so we don't fill the outer padded grid
+    if (row_g > inner_size || col_g > inner_size) {
         return;
     }
 
+    // Sync threads now, no need to wait for the threads that exit
     __syncthreads();
 
-    if (idx_inner_y <= TILE_SIZE && idx_inner_x <= TILE_SIZE) {
-        for (int j = 0; j < 3; ++j) {
-            for (int i = 0; i < 3; ++i) {
-                a += ds[j + idx_inner_y - 1][i + idx_inner_x - 1];
-            }
+    unsigned short a = 0;
+    for (unsigned short j = 0; j < KERNEL_SIZE; ++j) {
+        for (unsigned short i = 0; i < KERNEL_SIZE; ++i) {
+            a += neighbors_ds[j + idx_inner_y - (KERNEL_SIZE / 2)][i + idx_inner_x - (KERNEL_SIZE / 2)];
         }
-        a -= ds[idx_inner_y][idx_inner_x];
-
-        if (a == 2)
-            d_newboard[row_g * pitch + col_g] = ds[idx_inner_y][idx_inner_x];
-        if (a == 3)
-            d_newboard[row_g * pitch + col_g] = 1;
-        if (a < 2)
-            d_newboard[row_g * pitch + col_g] = 0;
-        if (a > 3)
-            d_newboard[row_g * pitch + col_g] = 0;
     }
+    a -= neighbors_ds[idx_inner_y][idx_inner_x];
+
+    if (a == 2)
+        d_newboard[row_g * pitch + col_g] = neighbors_ds[idx_inner_y][idx_inner_x];
+    if (a == 3)
+        d_newboard[row_g * pitch + col_g] = 1;
+    if (a < 2)
+        d_newboard[row_g * pitch + col_g] = 0;
+    if (a > 3)
+        d_newboard[row_g * pitch + col_g] = 0;
 }
 
 /* print the life board */
-void print_flat(cell_t *board, int size) {
+void print_flat(cell_t *board, int inner_size, int outer_size) {
     int i, j;
     /* for each row */
-    for (j = 0; j < size; j++) {
+    for (j = 0; j < inner_size; j++) {
         /* print each column position... */
-        for (i = 0; i < size; i++)
-            printf("%c", board[j * size + i] ? 'x' : ' ');
+        for (i = 0; i < inner_size; i++)
+            printf("%c", board[(j + (KERNEL_SIZE / 2)) * outer_size + (i + (KERNEL_SIZE / 2))] ? 'x' : ' ');
         /* followed by a carriage return */
         printf("\n");
     }
@@ -163,7 +139,7 @@ void read_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
 
         /* copy the string to the life board */
         for (i = 0; i < inner_size; i++) {
-            board[(j + 1) * outer_size + (i + 1)] = i < len ? s[i] == 'x' : 0;
+            board[(j + (KERNEL_SIZE / 2)) * outer_size + (i + (KERNEL_SIZE / 2))] = i < len ? s[i] == 'x' : 0;
         }
     }
 }
@@ -181,48 +157,30 @@ void write_file_flat(FILE *f, cell_t *board, int inner_size, int outer_size) {
     }
 }
 
-void usage() {
-    printf("Usage: ./life input_file [output_file]\n");
-    printf("input_file: path to the input file\n");
-    printf("output_file: path to the output file\n");
-}
-
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        usage();
-        return EXIT_FAILURE;
-    }
-
     // Host variables
     int size, flat_size, steps, i, grid_size, outer_grid_size;
-    FILE *f_in, *f_out = NULL;
+    FILE *f_in;
     cell_t *h_prev;
-    bool_t writeOutput = 0, evenSteps;
-    cudaEvent_t start, stop;
-    float milliseconds = 0;
+    bool_t writeOutput = 1, evenSteps;
+//    cudaEvent_t start, stop;
+//    float milliseconds = 0;
     size_t pitch;
 
     // Device variables
     cell_t *d_prev, *d_next;
 
     // Prepare the timer
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
+//    cudaEventCreate(&start);
+//    cudaEventCreate(&stop);
 
-    // Open files
-    printf("Provided input file: %s\n", argv[1]);
-    f_in = fopen(argv[1], "r");
-
-    if (argc >= 3) {
-        printf("Provided output file: %s\n", argv[2]);
-        f_out = fopen(argv[2], "w+");
-        writeOutput = 1;
-    }
+    f_in = stdin;
 
     // Read the input file and write its content in the host array
     fscanf(f_in, "%d %d", &size, &steps);
 
-    outer_grid_size = size + 2;
+    // Create a border around the grid to avoid dealing with boundary conditions
+    outer_grid_size = size + (2 * (KERNEL_SIZE / 2));
     flat_size = outer_grid_size * outer_grid_size;
     evenSteps = steps % 2 == 0;
 
@@ -230,20 +188,18 @@ int main(int argc, char *argv[]) {
     read_file_flat(f_in, h_prev, size, outer_grid_size);
     fclose(f_in);
 
-//    for (int bla = 0; bla < flat_size; ++bla) {
-//        printf("%d", h_prev[bla]);
-//    }
-
     grid_size = int(ceil((float) size / TILE_SIZE));
 
     dim3 dimGrid(grid_size, grid_size, 1);
+
+    // In our case, a TILE_SIZE of 8 gives the best results, with 16 and 32 being slightly slower
     dim3 dimBlock(TILE_SIZE, TILE_SIZE, 1);
 
     // Allocate device arrays
     cudaMallocPitch((void **) &d_prev, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size);
     cudaMallocPitch((void **) &d_next, &pitch, outer_grid_size * sizeof(cell_t), outer_grid_size);
 
-    printf("Pitch: %lu\n", pitch);
+//    printf("Pitch: %lu\n", pitch);
 
     // Copy the data from the host array to the device array
 
@@ -251,12 +207,8 @@ int main(int argc, char *argv[]) {
                  h_prev, outer_grid_size * sizeof(cell_t),
                  outer_grid_size * sizeof(cell_t), outer_grid_size,
                  cudaMemcpyHostToDevice);
-//    cudaMemcpy(d_prev, h_prev, flat_size * sizeof(cell_t), cudaMemcpyHostToDevice);
 
-    cudaEventRecord(start);
-
-//    steps = 1;
-//    evenSteps = false;
+//    cudaEventRecord(start);
 
     for (i = 0; i < int(ceil((float) steps / 2)); i++) {
         //  printf("Step: %d\n", 2 * i);
@@ -271,11 +223,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
+//    cudaEventRecord(stop);
+//    cudaEventSynchronize(stop);
+//    cudaEventElapsedTime(&milliseconds, start, stop);
 
-    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
+//    printf("Game of life (%d steps) done in %lf seconds\n", steps, milliseconds / 1000);
 
     // Copy data back from the device array to the host array
     if (!evenSteps) {
@@ -283,15 +235,11 @@ int main(int argc, char *argv[]) {
                      d_next, pitch,
                      outer_grid_size * sizeof(cell_t), outer_grid_size,
                      cudaMemcpyDeviceToHost);
-
-//        cudaMemcpy(h_prev, d_next, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost);
     } else {
         cudaMemcpy2D(h_prev, outer_grid_size * sizeof(cell_t),
                      d_prev, pitch,
                      outer_grid_size * sizeof(cell_t), outer_grid_size,
                      cudaMemcpyDeviceToHost);
-
-//        cudaMemcpy(h_prev, d_prev, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost);
     }
 
     // Deallocate device arrays
@@ -299,9 +247,7 @@ int main(int argc, char *argv[]) {
     cudaFree(d_prev);
 
     if (writeOutput) {
-        printf("Writing output file...\n");
-        write_file_flat(f_out, h_prev, size, outer_grid_size);
-        fclose(f_out);
+        print_flat(h_prev, size, outer_grid_size);
     }
 
     free(h_prev);
