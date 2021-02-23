@@ -228,11 +228,11 @@ int main() {
     dim3 dimBlock(TILE_SIZE, TILE_SIZE, 1);
 
     // Allocate device arrays
-    cudaMalloc((void **) &d_prev, flat_size * sizeof(cell_t));
-    cudaMalloc((void **) &d_next, flat_size * sizeof(cell_t));
+    gpuErrchk(cudaMalloc((void **) &d_prev, flat_size * sizeof(cell_t)));
+    gpuErrchk(cudaMalloc((void **) &d_next, flat_size * sizeof(cell_t)));
 
     // Copy the data from the host array to the device array
-    cudaMemcpy(d_prev, h_prev, flat_size * sizeof(cell_t), cudaMemcpyHostToDevice);
+    gpuErrchk(cudaMemcpy(d_prev, h_prev, flat_size * sizeof(cell_t), cudaMemcpyHostToDevice));
 
     for (i = 0; i < int(ceilf((float) steps / 2)); i++) {
 //        printf("Step: %d\n", 2 * i);
@@ -251,15 +251,11 @@ int main() {
     }
 
     // Copy data back from the device array to the host array
-    if (!evenSteps) {
-        cudaMemcpy(h_prev, d_next, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost);
-    } else {
-        cudaMemcpy(h_prev, d_prev, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost);
-    }
+    gpuErrchk(cudaMemcpy(h_prev, evenSteps ? d_prev : d_next, flat_size * sizeof(cell_t), cudaMemcpyDeviceToHost));
 
     // Deallocate device arrays
-    cudaFree(d_next);
-    cudaFree(d_prev);
+    gpuErrchk(cudaFree(d_next));
+    gpuErrchk(cudaFree(d_prev));
 
     if (writeOutput) {
         print_flat(h_prev, size, outer_grid_size);
