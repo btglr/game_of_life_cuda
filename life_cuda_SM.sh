@@ -8,10 +8,18 @@
 
 #SBATCH --time=00:10:00
 
-printf "=== COMPILATION ===\n"
+if [ -z "$FULL_EXEC" ]; then
+	FULL_EXEC=0
+else
+  FULL_EXEC=1
+fi
 
-module load cuda/11.0
-make life_cuda_SM
+if [ "$FULL_EXEC" == 1 ]; then
+  printf "=== COMPILATION ===\n"
+
+  module load cuda/11.0
+  make life_cuda_SM
+fi
 
 printf "\n=== Shared Memory Kernel ===\n"
 
@@ -28,8 +36,10 @@ if [ "$RESULT" == '' ]
     echo "$RESULT"
 fi
 
-printf "\n\n=== nvprof ===\n\n"
-(nvprof ./life_cuda_SM.bin < inputs/judge.in > /dev/null) 2>&1
+if [ "$FULL_EXEC" == 1 ]; then
+  printf "\n\n=== nvprof ===\n\n"
+  (nvprof ./life_cuda_SM.bin < inputs/judge.in > /dev/null) 2>&1
+fi
 
 # Delete empty job files
 find jobs/ -size 0 -delete
